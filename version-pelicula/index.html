@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Silvia Álvarez · Negocios Inmobiliarios</title>
+<meta name="description" content="Silvia Álvarez Negocios Inmobiliarios — Compra, venta y alquileres en Río Cuarto, Córdoba. Cada propiedad cuenta una historia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --red:#D8262E; --red-2:#FF3B3F; --ink:#0E0D0D; --ink-2:#1A1818; --ink-3:#2A2727;
+  --paper:#F3EFE8; --paper-2:#E9E3D9; --white:#FFFFFF; --mute:#8C857C; --line:rgba(255,255,255,.12);
+  --display:'Anton', Impact, 'Arial Narrow', sans-serif;
+  --serif:'Instrument Serif', Georgia, serif;
+  --sans:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --hand:'Caveat', 'Segoe Print', cursive;
+  --ease:cubic-bezier(.2,.8,.2,1); --cut:cubic-bezier(.86,0,.07,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--ink);color:var(--white);line-height:1.55;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:var(--red);color:#fff}
+.wrap{width:min(1320px,100% - 40px);margin-inline:auto}
+.mono{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.paper{background:var(--paper);color:var(--ink)}
+
+/* ---------- Texturas: grano de película ---------- */
+.grain{position:fixed;inset:-100%;width:300%;height:300%;pointer-events:none;z-index:900;opacity:.09;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain .9s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-6%,-2%)}80%{transform:translate(5%,4%)}100%{transform:translate(0,0)}}
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:899;box-shadow:inset 0 0 180px rgba(0,0,0,.45)}
+
+/* ---------- Claqueta (intro) ---------- */
+#slate{position:fixed;inset:0;z-index:1000;background:var(--ink);display:grid;place-items:center;transition:clip-path 1s var(--cut) .1s;clip-path:inset(0 0 0 0)}
+#slate.out{clip-path:inset(0 0 100% 0)}
+.clap{width:min(520px,86vw);font-family:var(--mono);color:#fff}
+.clap-top{height:46px;background:repeating-linear-gradient(-45deg,#fff 0 28px,var(--ink) 28px 56px);border:3px solid #fff;transform-origin:left bottom;animation:clap 1s var(--cut) .5s both}
+@keyframes clap{0%{transform:rotate(-24deg)}70%{transform:rotate(0)}100%{transform:rotate(0)}}
+.clap-body{border:3px solid #fff;border-top:0;display:grid;grid-template-columns:1fr 1fr 1fr}
+.clap-body div{padding:12px 14px;border-right:3px solid #fff;font-size:.68rem;letter-spacing:.14em}
+.clap-body div:last-child{border:0}
+.clap-body b{display:block;font-family:var(--display);font-size:2rem;letter-spacing:0;font-weight:400}
+.clap-title{border:3px solid #fff;border-top:0;padding:14px;font-family:var(--display);font-size:clamp(1.6rem,5vw,2.4rem);text-transform:uppercase;line-height:1}
+.clap-title span{color:var(--red)}
+.leader{margin-top:22px;text-align:center;font-family:var(--display);font-size:3.4rem;color:var(--red)}
+
+/* ---------- Navegación tipo monitor ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;mix-blend-mode:difference;color:#fff}
+.nav .wrap{display:flex;justify-content:space-between;align-items:center;height:76px;gap:20px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo svg{width:38px}
+.logo b{font-family:var(--display);font-weight:400;font-size:1.25rem;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.logo small{display:block;font-family:var(--mono);font-size:.55rem;letter-spacing:.3em;opacity:.8}
+.tc{font-family:var(--mono);font-size:.82rem;letter-spacing:.08em;display:flex;align-items:center;gap:10px}
+.tc i{width:9px;height:9px;border-radius:50%;background:#fff;animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a,.nav-links button{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;position:relative}
+.nav-links a::before{content:"";position:absolute;left:-12px;top:50%;width:6px;height:6px;background:#fff;transform:translateY(-50%) scale(0);transition:.3s var(--ease)}
+.nav-links a:hover::before{transform:translateY(-50%) scale(1)}
+.sfx{display:flex;align-items:center;gap:8px}
+.sfx span{width:26px;height:14px;border:1.5px solid #fff;border-radius:999px;position:relative}
+.sfx span::after{content:"";position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:#fff;transition:.3s}
+.sfx.on span::after{left:13px}
+.burger{display:none;font-family:var(--mono);font-size:.75rem;letter-spacing:.2em}
+@media (max-width:980px){
+  .nav-links{position:fixed;inset:0;background:var(--ink);flex-direction:column;justify-content:center;gap:22px;clip-path:inset(0 0 100% 0);transition:clip-path .7s var(--cut);mix-blend-mode:normal}
+  .nav.open .nav-links{clip-path:inset(0)}
+  .nav-links a{font-family:var(--display);font-size:2.4rem;letter-spacing:0}
+  .burger{display:block;position:relative;z-index:2}
+  .tc{display:none}
+}
+
+/* ---------- Línea de tiempo lateral ---------- */
+.rail{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:0;mix-blend-mode:difference}
+.rail a{display:flex;align-items:center;gap:10px;height:30px;font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:#fff;opacity:.45;transition:.3s}
+.rail a i{width:14px;height:1.5px;background:#fff;transition:width .4s var(--ease)}
+.rail a span{opacity:0;transform:translateX(-6px);transition:.3s}
+.rail a.on{opacity:1}.rail a.on i{width:30px}
+.rail:hover a span{opacity:1;transform:none}
+@media (max-width:1200px){.rail{display:none}}
+
+/* ---------- Revelados con máscara y curvas ---------- */
+.mask{display:block;overflow:hidden}
+.mask>span{display:block;transform:translateY(105%);transition:transform 1.1s var(--cut)}
+.in .mask>span,.mask.in>span{transform:none}
+.reveal{clip-path:inset(0 0 100% 0);transition:clip-path 1.3s var(--cut)}
+.reveal.in{clip-path:inset(0 0 0 0)}
+.grade{filter:grayscale(1) contrast(1.15) brightness(.7);transition:filter 1.6s var(--ease) .2s}
+.in .grade,.grade.in{filter:none}
+.fade{opacity:0;transform:translateY(30px);transition:1s var(--ease)}
+.fade.in{opacity:1;transform:none}
+
+/* ---------- Escena 01 · Apertura ---------- */
+.hero{height:100svh;min-height:640px;position:relative;overflow:hidden;perspective:900px}
+.layer{position:absolute;inset:0;transition:transform .25s linear;will-change:transform}
+.hero-bg{inset:-6%}
+.hero-bg img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.2) brightness(.45);transition:filter 2.4s var(--ease) .6s}
+.ready .hero-bg img{filter:contrast(1.05) brightness(.55) saturate(1.05)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,13,13,.55),transparent 30%,transparent 60%,var(--ink));pointer-events:none}
+.vf{position:absolute;inset:clamp(70px,9vh,96px) clamp(16px,4vw,56px) clamp(24px,5vh,48px);pointer-events:none;z-index:3}
+.vf::before,.vf::after,.vf i::before,.vf i::after{content:"";position:absolute;width:34px;height:34px;border:2px solid rgba(255,255,255,.85)}
+.vf::before{top:0;left:0;border-right:0;border-bottom:0}
+.vf::after{top:0;right:0;border-left:0;border-bottom:0}
+.vf i::before{bottom:0;left:0;border-right:0;border-top:0}
+.vf i::after{bottom:0;right:0;border-left:0;border-top:0}
+.vf .rec{position:absolute;top:14px;left:50px;display:flex;align-items:center;gap:8px}
+.vf .rec b{width:10px;height:10px;border-radius:50%;background:var(--red);animation:blink 1s steps(2) infinite}
+.vf .meta{position:absolute;bottom:14px;left:50px;right:50px;display:flex;justify-content:space-between;opacity:.75}
+.vf .cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.35}
+.vf .cross::before,.vf .cross::after{content:"";position:absolute;background:#fff}
+.vf .cross::before{left:50%;top:0;bottom:0;width:1px}.vf .cross::after{top:50%;left:0;right:0;height:1px}
+.hero-copy{position:absolute;inset:auto 0 clamp(70px,13vh,140px) 0;z-index:4}
+.hero-kicker{font-family:var(--serif);font-style:italic;font-size:clamp(1.2rem,2.2vw,1.8rem);max-width:30ch;line-height:1.15;margin-bottom:10px;opacity:.95}
+.big{font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:.86;letter-spacing:-.005em}
+.hero h1{font-size:clamp(4rem,14.5vw,15.5rem)}
+.hero h1 .r{color:var(--red);text-shadow:.04em .04em 0 var(--ink)}
+.note{font-family:var(--hand);color:#fff;font-size:clamp(1.3rem,2.2vw,1.9rem);line-height:1;position:absolute;transform:rotate(-6deg)}
+.draw path{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);transition:stroke-dashoffset 1.6s var(--ease) .4s}
+.in .draw path,.draw.in path,.ready .hero .draw path{stroke-dashoffset:0}
+.hero-note{right:clamp(20px,8vw,140px);bottom:clamp(250px,40vh,420px)}
+.hero-note svg{position:absolute;left:-40px;top:30px;width:120px;overflow:visible}
+.finder{position:absolute;right:clamp(16px,4vw,56px);bottom:clamp(70px,13vh,140px);z-index:5;width:min(380px,calc(100% - 32px));background:rgba(14,13,13,.72);backdrop-filter:blur(10px);border:1px solid var(--line);padding:16px}
+.finder-head{display:flex;justify-content:space-between;margin-bottom:12px;color:var(--mute)}
+.ops{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px}
+.ops button{padding:10px 4px;border:1px solid var(--line);font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;transition:.25s}
+.ops button.on,.ops button:hover{background:#fff;color:var(--ink);border-color:#fff}
+.finder-row{display:flex;gap:6px}
+.finder select{flex:1;min-width:0;background:transparent;color:#fff;border:1px solid var(--line);padding:11px 10px;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;outline:none}
+.finder select option{color:var(--ink)}
+.go{background:var(--red);color:#fff;padding:0 18px;font-family:var(--display);font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase;transition:.25s}
+.go:hover{background:#fff;color:var(--red)}
+@media (max-width:860px){
+  .hero{height:auto;min-height:100svh;padding-bottom:20px}
+  .hero-copy{position:relative;bottom:auto;padding-top:46svh}
+  .finder{position:relative;right:auto;bottom:auto;margin:26px 20px 0;width:auto}
+  .hero-note{display:none}
+  .vf .meta{display:none}
+}
+
+/* ---------- Marquesina ---------- */
+.ticker{background:var(--red);color:#fff;overflow:hidden;border-block:2px solid var(--ink);position:relative;z-index:2}
+.ticker-track{display:flex;width:max-content;animation:tick 38s linear infinite}
+.ticker-track span{font-family:var(--display);font-size:clamp(1.6rem,3.4vw,2.8rem);text-transform:uppercase;padding:10px 0;white-space:nowrap}
+.ticker-track span::after{content:"●";font-size:.4em;vertical-align:middle;margin:0 .9em;opacity:.8}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- Escena 02 · Manifiesto (máscara de texto) ---------- */
+.manifesto{padding:clamp(90px,14vh,160px) 0 120px;position:relative;overflow:hidden}
+.scene-tag{display:flex;align-items:center;gap:14px;margin-bottom:28px;color:var(--mute)}
+.scene-tag b{color:var(--red);font-weight:600}
+.scene-tag::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
+.paper .scene-tag{color:#6d665d}
+.word{font-size:clamp(5rem,23vw,24rem);line-height:.8;color:transparent;background-image:url(../img/p16-2.jpg);background-size:120%;background-position:50% 50%;-webkit-background-clip:text;background-clip:text;text-align:center;filter:contrast(1.1)}
+.manifesto-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(30px,6vw,90px);margin-top:60px;align-items:end}
+.manifesto p.lead{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.6rem);line-height:1.12}
+.manifesto p.lead em{color:var(--red)}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #cfc7ba}
+.counts div{padding:22px 14px 0 0}
+.counts b{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,5vw,4.4rem);line-height:1;display:block}
+.counts b sup{color:var(--red);font-size:.45em}
+.counts span{font-size:.85rem;color:#6d665d}
+@media (max-width:860px){.manifesto-grid{grid-template-columns:1fr}}
+
+/* ---------- Escena 03 · Recorrido (timeline de edición) ---------- */
+.edit{height:620vh;position:relative}
+.edit-sticky{position:sticky;top:0;height:100svh;display:flex;flex-direction:column;padding:88px clamp(16px,4vw,56px) 18px;gap:14px}
+.edit-top{display:grid;grid-template-columns:1fr minmax(260px,.42fr);gap:18px;flex:1;min-height:0}
+.viewer{position:relative;background:#000;border:1px solid var(--line);overflow:hidden;min-height:0}
+.viewer img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 100% 0 0);transition:clip-path .9s var(--cut),transform 6s linear;transform:scale(1.08)}
+.viewer img.on{clip-path:inset(0 0 0 0);transform:scale(1)}
+.viewer img.was{clip-path:inset(0 0 0 0);z-index:0}
+.viewer img.on{z-index:1}
+.viewer .vhud{position:absolute;inset:12px;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.viewer .vhud span{background:rgba(0,0,0,.55);padding:5px 8px}
+.viewer .title-card{position:absolute;left:24px;bottom:22px;z-index:3;max-width:80%}
+.viewer .title-card h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(2.2rem,5vw,4.6rem);line-height:.9;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.inspector{border:1px solid var(--line);background:var(--ink-2);padding:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.inspector h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(1.8rem,2.6vw,2.6rem);line-height:.95}
+.inspector h2 em{font-family:var(--serif);text-transform:none;color:var(--red);font-size:1.1em}
+.inspector .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:7px 0;font-size:.85rem}
+.inspector .row span{color:var(--mute)}
+.inspector p{color:#cfc8bf;font-size:.95rem}
+.timeline{border:1px solid var(--line);background:var(--ink-2);position:relative;padding:8px 10px 10px 54px;user-select:none}
+.ruler{height:18px;display:flex;justify-content:space-between;color:var(--mute);font-family:var(--mono);font-size:.58rem;border-bottom:1px solid var(--line);margin-bottom:6px}
+.track{height:34px;display:flex;gap:3px;margin-bottom:4px;position:relative}
+.track::before{content:attr(data-name);position:absolute;left:-44px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:.6rem;color:var(--mute)}
+.clip{flex:1;border-radius:3px;overflow:hidden;position:relative;background:#3a2a5e;border:1px solid rgba(255,255,255,.25);transition:.3s}
+.clip img{width:100%;height:100%;object-fit:cover;opacity:.75}
+.clip.on{border-color:#fff;box-shadow:0 0 0 1px #fff}
+.clip.txt{background:#7d2a2d;font-family:var(--mono);font-size:.58rem;padding:0 6px;display:flex;align-items:center;white-space:nowrap;text-overflow:ellipsis}
+.track.audio{height:28px}
+.wave{flex:1;background:#1f4a3c;border-radius:3px;border:1px solid rgba(255,255,255,.18);overflow:hidden}
+.wave svg{width:100%;height:100%}
+.playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:4;left:54px;pointer-events:none}
+.playhead::before{content:"";position:absolute;top:0;left:-6px;border:7px solid transparent;border-top:10px solid var(--red)}
+.timeline-area{position:absolute;top:0;bottom:0;left:54px;right:10px;pointer-events:none}
+@media (max-width:860px){
+  .edit-top{grid-template-columns:1fr}
+  .inspector{display:none}
+  .edit-sticky{padding-top:80px}
+}
+
+/* ---------- Escena 04 · Propiedades ---------- */
+.catalog{padding:120px 0 100px;position:relative}
+.cat-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:36px}
+.cat-head h2{font-size:clamp(3.4rem,9vw,8.4rem)}
+.cat-head h2 em{font-family:var(--serif);text-transform:none;color:var(--red);font-weight:400;font-size:.62em;letter-spacing:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:10px 15px;border:1.5px solid var(--ink);font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;transition:.25s}
+.chip:hover{background:var(--ink);color:var(--paper)}
+.chip.on{background:var(--red);border-color:var(--red);color:#fff}
+.chip sup{opacity:.6;margin-left:3px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;padding:10px 0;border-block:1px solid #cfc7ba}
+.bar select{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid var(--ink);background:transparent;padding:9px 10px;color:var(--ink)}
+.toggle{display:none;border:1.5px solid var(--ink)}
+.toggle button{padding:8px 14px;font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase}
+.toggle button.on{background:var(--ink);color:var(--paper)}
+.lm{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#fff;cursor:pointer;position:relative;transition:transform .4s var(--ease),box-shadow .4s var(--ease);outline:0}
+.card::after{content:"";position:absolute;inset:0;border:2px solid var(--red);opacity:0;transition:.25s;pointer-events:none}
+.card:hover,.card.hl{transform:translate(-4px,-4px);box-shadow:8px 8px 0 var(--ink)}
+.card.hl::after,.card:focus-visible::after{opacity:1}
+.card-top{display:flex;justify-content:space-between;padding:8px 10px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:.6rem;letter-spacing:.12em}
+.card-top .op{color:var(--red-2)}
+.card-img{aspect-ratio:1/1;overflow:hidden;position:relative;background:#ddd}
+.card-img img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease),filter 1.4s var(--ease)}
+.card:hover .card-img img{transform:scale(1.06)}
+.fav{position:absolute;top:10px;right:10px;width:38px;height:38px;background:var(--paper);display:grid;place-items:center;transition:.25s;z-index:2}
+.fav svg{width:18px;fill:none;stroke:var(--ink);stroke-width:2}
+.fav.on{background:var(--red)}.fav.on svg{fill:#fff;stroke:#fff}
+.card-body{padding:14px 14px 16px}
+.price{font-family:var(--display);font-size:1.75rem;line-height:1;letter-spacing:.01em}
+.price small{font-family:var(--mono);font-size:.62rem;color:var(--mute);letter-spacing:.08em}
+.card h3{font-size:.92rem;font-weight:600;line-height:1.3;margin:8px 0 4px}
+.addr{font-size:.8rem;color:#6d665d}
+.specs{display:flex;gap:12px;margin-top:12px;padding-top:10px;border-top:1px dashed #cfc7ba;font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#4d4740}
+.map-box{position:sticky;top:90px;height:calc(100svh - 110px);min-height:480px;background:var(--ink);border:2px solid var(--ink)}
+#map{width:100%;height:100%;background:#151414}
+#map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) grayscale(1) brightness(.78) contrast(1.05)}
+.map-hud{position:absolute;z-index:500;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;pointer-events:none;color:#fff}
+.map-hud span{background:rgba(14,13,13,.85);padding:6px 9px}
+.map-legend{position:absolute;z-index:500;left:10px;bottom:10px;background:rgba(14,13,13,.85);color:#fff;padding:8px 12px;display:flex;gap:14px}
+.map-legend i{display:inline-block;width:9px;height:9px;margin-right:6px}
+.pin{position:absolute;transform:translate(-50%,-100%);background:var(--red);color:#fff;font-family:var(--mono);font-size:.66rem;font-weight:600;padding:4px 7px;white-space:nowrap;border:1.5px solid #fff;transition:transform .2s var(--ease)}
+.pin::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#fff;border-bottom:0}
+.pin.alq{background:var(--paper);color:var(--ink)}
+.pin.hl{transform:translate(-50%,-100%) scale(1.3);z-index:999;background:#fff;color:var(--red)}
+.pin-wrap{background:none;border:0}
+.office{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:var(--red);display:grid;place-items:center;border:2px solid #fff}
+.office::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid var(--red);animation:ping 1.8s infinite}
+@keyframes ping{from{opacity:.9;transform:scale(.7)}to{opacity:0;transform:scale(1.6)}}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--ink);color:#fff;border-radius:0}
+.leaflet-popup-content-wrapper{padding:0;border:1px solid #fff}
+.leaflet-popup-content{margin:0;width:220px!important;font-family:var(--sans)}
+.leaflet-container a.leaflet-popup-close-button{color:#fff}
+.pop img{width:100%;height:130px;object-fit:cover}
+.pop div{padding:10px 12px 12px}
+.pop b{font-family:var(--display);font-weight:400;font-size:1.3rem;letter-spacing:.02em}
+.pop p{margin:2px 0 8px!important;font-size:.8rem;color:#cfc8bf}
+.pop button{color:var(--red-2);font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase}
+.empty{grid-column:1/-1;padding:60px 10px;text-align:center;font-family:var(--serif);font-size:1.6rem}
+@media (max-width:1100px){.cards{gap:10px}.card-body{padding:10px 10px 12px}.price{font-size:1.4rem}.specs span:last-child{display:none}}
+@media (max-width:860px){
+  .lm{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}
+  .toggle{display:inline-flex}
+  .lm[data-view="list"] .map-box{display:none}
+  .lm[data-view="map"] .cards{display:none}
+  .map-box{position:relative;top:0;height:72svh}
+}
+@media (max-width:540px){.cards{grid-template-columns:1fr}}
+
+/* ---------- Modal ---------- */
+.modal{position:fixed;inset:0;z-index:950;display:grid;place-items:center;padding:16px;visibility:hidden;pointer-events:none}
+.modal.open{visibility:visible;pointer-events:auto}
+.modal-bg{position:absolute;inset:0;background:rgba(14,13,13,.85);opacity:0;transition:.4s}
+.modal.open .modal-bg{opacity:1}
+.modal-box{position:relative;width:min(1100px,100%);max-height:94svh;overflow:auto;background:var(--ink);border:1px solid #fff;display:grid;grid-template-columns:1.25fr 1fr;clip-path:inset(50% 0 50% 0);transition:clip-path .7s var(--cut)}
+.modal.open .modal-box{clip-path:inset(0)}
+.gal{position:relative;min-height:520px;background:#000}
+.gal>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gal-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:46px;background:var(--paper);color:var(--ink);font-size:1.4rem;display:grid;place-items:center;transition:.2s}
+.gal-btn:hover{background:var(--red);color:#fff}
+.gal-btn.prev{left:12px}.gal-btn.next{right:12px}
+.gal-tc{position:absolute;top:12px;left:12px;z-index:3;background:rgba(0,0,0,.6);padding:5px 8px}
+.thumbs{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:4px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.8));overflow-x:auto}
+.thumbs img{flex:0 0 58px;width:58px;height:58px;object-fit:cover;opacity:.5;cursor:pointer;border:2px solid transparent;transition:.2s}
+.thumbs img.on,.thumbs img:hover{opacity:1;border-color:#fff}
+.gal.single .gal-btn,.gal.single .thumbs{display:none}
+.m-body{padding:30px 30px 26px;display:flex;flex-direction:column;gap:12px}
+.m-body h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(2rem,3vw,2.8rem);line-height:.95}
+.m-price{font-family:var(--display);font-size:2.4rem;color:var(--red-2);line-height:1}
+.m-price small{font-family:var(--mono);font-size:.7rem;color:var(--mute)}
+.m-body p{color:#cfc8bf}
+.feat{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:.88rem;border-top:1px solid var(--line);padding-top:12px}
+.feat li::before{content:"▸ ";color:var(--red-2)}
+.m-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:10px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 20px;font-family:var(--display);font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase;transition:.25s var(--ease)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#fff;color:var(--red)}
+.btn-line{border:1.5px solid currentColor}.btn-line:hover{background:#fff;color:var(--ink)}
+.m-x{position:absolute;top:10px;right:10px;z-index:5;width:42px;height:42px;background:#fff;color:var(--ink);font-size:1.4rem}
+@media (max-width:820px){.modal-box{grid-template-columns:1fr}.gal{min-height:340px}.m-body{padding:22px}.feat{grid-template-columns:1fr}}
+
+/* ---------- Escena 05 · Estreno ---------- */
+.premiere{padding:120px 0;position:relative;overflow:hidden}
+.poster{display:grid;grid-template-columns:1fr 1fr;border:1px solid #fff;position:relative}
+.poster-img{position:relative;min-height:560px;overflow:hidden}
+.poster-img.sketch{background:#121111;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:28px 28px;border-right:1px solid var(--line)}
+.poster-img svg{position:absolute;inset:6% 8%;width:84%;height:88%}
+.poster-img .note{font-size:1.6rem}
+.poster-img .vm{position:absolute;left:18px;top:16px;color:var(--mute)}
+.poster-img.sketch .draw path{transition-duration:2.6s}
+.poster-txt{padding:clamp(28px,5vw,60px);display:flex;flex-direction:column;justify-content:space-between;gap:30px}
+.poster-txt h2{font-size:clamp(3.6rem,8vw,7.6rem)}
+.poster-txt h2 span{display:block;color:var(--red);text-shadow:.04em .04em 0 #fff}
+.poster-txt .serif{font-family:var(--serif);font-size:1.6rem;line-height:1.15;font-style:italic}
+.billing{border-top:1px solid var(--line);padding-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.billing b{display:block;font-family:var(--display);font-weight:400;font-size:1.5rem}
+.stamp{position:absolute;top:24px;right:24px;width:120px;height:120px;border-radius:50%;background:var(--red);display:grid;place-items:center;text-align:center;font-family:var(--display);font-size:1rem;line-height:1;transform:rotate(12deg);z-index:2}
+.stamp b{display:block;font-size:1.7rem}
+@media (max-width:860px){.poster{grid-template-columns:1fr}.poster-img{min-height:380px}.billing{grid-template-columns:1fr}}
+
+/* ---------- Escena 06 · Storyboard ---------- */
+.story{padding:120px 0}
+.story-head{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:end;margin-bottom:46px}
+.story-head h2{font-size:clamp(3.2rem,8vw,7.4rem)}
+.story-head h2 em{font-family:var(--serif);text-transform:none;color:var(--red);font-weight:400;font-size:.6em}
+.story-head p{font-family:var(--serif);font-size:1.5rem;line-height:1.2;color:#3d3832}
+.tracks{display:flex;gap:6px;margin-top:20px;flex-wrap:wrap}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.panel{background:#fff;border:2px solid var(--ink);padding:0 0 18px;position:relative;transition:transform .5s var(--ease)}
+.panel:nth-child(odd){transform:rotate(-.6deg)}.panel:nth-child(even){transform:rotate(.5deg)}
+.panel:hover{transform:rotate(0) translateY(-6px)}
+.panel-frame{aspect-ratio:16/9;border-bottom:2px solid var(--ink);display:grid;place-items:center;position:relative;background:var(--paper-2);overflow:hidden}
+.panel-frame b{font-family:var(--display);font-weight:400;font-size:6rem;line-height:1;color:transparent;-webkit-text-stroke:2px var(--ink)}
+.panel-frame .hand{position:absolute;right:12px;bottom:6px;font-family:var(--hand);font-size:1.5rem;color:var(--red);transform:rotate(-4deg)}
+.panel-frame svg{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);opacity:.35}
+.panel .mono{display:block;padding:12px 16px 0;color:var(--red)}
+.panel h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:1.7rem;padding:2px 16px 6px;line-height:1}
+.panel p{padding:0 16px;font-size:.92rem;color:#4d4740}
+.tip{margin-top:30px;display:flex;gap:16px;align-items:center;padding:18px 22px;background:var(--ink);color:#fff}
+.tip .hand{font-family:var(--hand);font-size:1.8rem;color:var(--red-2);white-space:nowrap}
+@media (max-width:900px){.story-head{grid-template-columns:1fr}.panels{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.panels{grid-template-columns:1fr}}
+
+/* ---------- Escena 07 · Números (curvas) ---------- */
+.numbers{padding:120px 0}
+.num-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:clamp(30px,5vw,70px);align-items:center}
+.num-grid h2{font-size:clamp(3.2rem,7vw,6.4rem)}
+.num-grid h2 em{font-family:var(--serif);text-transform:none;color:var(--red-2);font-weight:400;font-size:.6em}
+.num-grid .lead{font-family:var(--serif);font-size:1.4rem;line-height:1.2;color:#cfc8bf;margin-top:16px;max-width:30ch}
+.desk{border:1px solid var(--line);background:var(--ink-2)}
+.desk-tabs{display:flex;border-bottom:1px solid var(--line)}
+.desk-tabs button{flex:1;padding:14px;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);border-right:1px solid var(--line)}
+.desk-tabs button:last-child{border:0}
+.desk-tabs button.on{color:#fff;background:var(--ink-3);box-shadow:inset 0 -2px 0 var(--red)}
+.desk-body{padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.knob{margin-bottom:16px}
+.knob-top{display:flex;justify-content:space-between;margin-bottom:8px}
+.knob-top b{font-family:var(--mono);font-size:.82rem}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:linear-gradient(var(--red),var(--red)) 0/var(--p,50%) 100% no-repeat,#3a3636;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:22px;background:#fff;border:0;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:22px;background:#fff;border:0;border-radius:0;cursor:pointer}
+.scope{background:#0a0909;border:1px solid var(--line);position:relative;display:flex;flex-direction:column}
+.scope svg{width:100%;flex:1;min-height:160px;max-height:240px}
+.scope .out{padding:12px 14px;border-top:1px solid var(--line)}
+.scope .out b{font-family:var(--display);font-weight:400;font-size:2.6rem;color:var(--red-2);line-height:1;display:block}
+.desk-note{padding:0 22px 16px;color:var(--mute)}
+@media (max-width:900px){.num-grid{grid-template-columns:1fr}.desk-body{grid-template-columns:1fr}}
+
+/* ---------- Cita ---------- */
+.quote{padding:150px 0;text-align:center;position:relative}
+.quote blockquote{font-family:var(--serif);font-size:clamp(2.2rem,5.6vw,5.4rem);line-height:1.02;max-width:17ch;margin:0 auto}
+.quote .w{opacity:.12;transition:opacity .35s}
+.quote .w.lit{opacity:1}
+.quote .w.r{color:var(--red)}
+.quote .note{position:relative;display:inline-block;margin-top:30px;color:var(--red);transform:rotate(-3deg)}
+
+/* ---------- Escena 08 · Créditos ---------- */
+.credits{padding:140px 0 60px;text-align:center;position:relative}
+.credits h2{font-size:clamp(3.6rem,10vw,9rem)}
+.roll{max-width:760px;margin:60px auto 0;display:grid;gap:34px}
+.credit .mono{color:var(--mute);display:block;margin-bottom:6px}
+.credit p{font-family:var(--display);font-size:clamp(1.6rem,3.4vw,2.6rem);text-transform:uppercase;line-height:1.05}
+.credit p a:hover{color:var(--red-2)}
+.open{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:5px 10px;border:1px solid var(--line)}
+.open i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.open.yes i{background:#3ddc84;box-shadow:0 0 10px #3ddc84}
+.form{max-width:760px;margin:80px auto 0;text-align:left;border:1px solid #fff;padding:clamp(20px,4vw,40px)}
+.form h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:2.4rem;line-height:1}
+.form>p{color:var(--mute);margin:6px 0 22px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{display:flex;flex-direction:column;gap:6px}
+.f.full{grid-column:1/-1}
+.f label{color:var(--mute)}
+.f input,.f select,.f textarea{background:transparent;border:0;border-bottom:1.5px solid #5a5450;color:#fff;font:inherit;padding:8px 0;outline:none;transition:border-color .3s;resize:vertical}
+.f select option{color:var(--ink)}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--red-2)}
+.form .btn{margin-top:22px;width:100%;justify-content:center;font-size:1.4rem}
+.fin{font-family:var(--display);font-size:clamp(7rem,30vw,26rem);line-height:.8;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.22);margin-top:110px;user-select:none}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:20px;margin-top:20px;text-align:left}
+@media (max-width:640px){.fgrid{grid-template-columns:1fr}}
+
+/* ---------- Flotantes ---------- */
+.wa{position:fixed;right:18px;bottom:18px;z-index:120;width:60px;height:60px;background:var(--red);display:grid;place-items:center;transition:.3s var(--ease);border:2px solid #fff}
+.wa:hover{transform:rotate(-8deg) scale(1.06)}
+.wa svg{width:28px;fill:#fff}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,calc(100% + 40px));z-index:980;background:#fff;color:var(--ink);padding:12px 18px;font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;transition:.45s var(--cut)}
+.toast.show{transform:translate(-50%,0)}
+.cursor{position:fixed;left:0;top:0;z-index:960;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;pointer-events:none;transform:scale(0);transition:transform .3s var(--ease)}
+.cursor.on{transform:scale(1)}
+@media (hover:none){.cursor{display:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.mask>span{transform:none}.reveal{clip-path:none}.grade{filter:none}.fade{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 64 48">
+    <path d="M22 4c9.4 0 17 6.9 17 15.4S31.4 34.8 22 34.8c-1.6 0-3.1-.2-4.6-.6L9 40l1.9-8.6C6.8 28.6 5 24.2 5 19.4 5 10.9 12.6 4 22 4z" fill="currentColor" opacity=".55"/>
+    <path d="M41 2c9.9 0 18 7.2 18 16.2 0 5-2.5 9.4-6.4 12.4L55 42l-10.2-7.3c-1.2.2-2.5.3-3.8.3-9.9 0-18-7.2-18-16.2S31.1 2 41 2z" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<!-- Claqueta -->
+<div id="slate" aria-hidden="true">
+  <div class="clap">
+    <div class="clap-top"></div>
+    <div class="clap-body"><div>ESCENA<b>01</b></div><div>TOMA<b>1</b></div><div>RÍO CUARTO<b>CBA</b></div></div>
+    <div class="clap-title">Silvia Álvarez <span>/</span> Negocios Inmobiliarios</div>
+    <div class="leader" id="leader">3</div>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a href="#apertura" class="logo" aria-label="Inicio"><svg><use href="#logo"/></svg><div><b>Silvia Álvarez</b><small>NEGOCIOS INMOBILIARIOS</small></div></a>
+    <div class="tc" aria-hidden="true"><i></i><span id="tc">00:00:00:00</span></div>
+    <nav class="nav-links" id="links">
+      <a href="#recorrido" data-sfx>Recorrido</a>
+      <a href="#propiedades" data-sfx>Propiedades</a>
+      <a href="#proceso" data-sfx>Proceso</a>
+      <a href="#numeros" data-sfx>Números</a>
+      <a href="#creditos" data-sfx>Contacto</a>
+      <button class="sfx" id="sfx" aria-pressed="false" title="Efectos de sonido"><span></span>SFX</button>
+    </nav>
+    <button class="burger" id="burger">MENÚ</button>
+  </div>
+</header>
+
+<nav class="rail" id="rail" aria-label="Escenas"></nav>
+
+<main>
+<!-- ESCENA 01 · APERTURA -->
+<section class="hero" id="apertura" data-scene="Apertura">
+  <div class="layer hero-bg" data-depth="18"><img src="../img/p2-5.jpg" alt="Vista desde un balcón de Río Cuarto"></div>
+  <div class="vf mono" aria-hidden="true"><i></i>
+    <div class="rec"><b></b>REC</div>
+    <div class="cross"></div>
+    <div class="meta"><span>24 FPS · ISO 400 · 35MM</span><span>−33.12° S / −64.35° O</span><span>RÍO CUARTO, CÓRDOBA</span></div>
+  </div>
+  <div class="hero-copy layer" data-depth="-10">
+    <div class="wrap">
+      <p class="hero-kicker">Detrás de cada propiedad hay sueños, proyectos y</p>
+      <h1 class="big"><span class="mask"><span>Nuevos</span></span><span class="mask"><span class="r">Comienzos.</span></span></h1>
+    </div>
+  </div>
+  <div class="note hero-note" aria-hidden="true">tu próximo paso empieza acá
+    <svg class="draw" viewBox="0 0 120 120" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path style="--len:260" d="M60 6c18 30 34 52 40 86M100 92l-12-10M100 92l8-14"/></svg>
+  </div>
+  <div class="finder" id="finder">
+    <div class="finder-head mono"><span>▸ Buscar propiedad</span><span id="finderCount">28 clips</span></div>
+    <div class="ops" id="ops">
+      <button class="on" data-op="venta" data-sfx>Comprar</button><button data-op="alquiler" data-sfx>Alquilar</button><button data-op="terreno" data-sfx>Terrenos</button><button data-op="comercial" data-sfx>Locales</button>
+    </div>
+    <div class="finder-row">
+      <select id="sTipo" aria-label="Tipo"><option value="">Todo tipo</option><option>Departamento</option><option>Casa</option><option>Lote</option><option>Local</option><option>Cochera</option></select>
+      <select id="sDorm" aria-label="Dormitorios"><option value="0">Dorm.</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option></select>
+      <button class="go" id="sGo" data-sfx>Ver</button>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track">
+  <span>Ventas</span><span>Alquileres</span><span>Terrenos</span><span>Locales</span><span>Tasaciones</span><span>Inversiones</span><span>Río Cuarto</span><span>Córdoba</span><span>Villa María</span>
+  <span>Ventas</span><span>Alquileres</span><span>Terrenos</span><span>Locales</span><span>Tasaciones</span><span>Inversiones</span><span>Río Cuarto</span><span>Córdoba</span><span>Villa María</span>
+</div></div>
+
+<!-- ESCENA 02 · MANIFIESTO -->
+<section class="manifesto paper" id="manifiesto" data-scene="Manifiesto">
+  <div class="wrap">
+    <div class="scene-tag mono fade"><b>ESC. 02</b> Manifiesto</div>
+    <div class="word big" id="word" aria-label="Hogar">Hogar</div>
+    <div class="manifesto-grid">
+      <p class="lead fade">No vendemos metros cuadrados. Acompañamos el momento en que alguien abre una puerta y piensa: <em>acá empieza lo nuestro.</em></p>
+      <div class="counts fade">
+        <div><b><span data-count="5000">0</span><sup>+</sup></b><span>personas siguen la historia</span></div>
+        <div><b><span data-count="265">0</span><sup>+</sup></b><span>propiedades acompañadas</span></div>
+        <div><b>1<sup>a</sup>1</b><span>asesoramiento personal</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ESCENA 03 · RECORRIDO -->
+<section class="edit" id="recorrido" data-scene="Recorrido">
+  <div class="edit-sticky">
+    <div class="edit-top">
+      <div class="viewer" id="viewer">
+        <img class="on" src="../img/p1-2.jpg" alt="Living-comedor">
+        <img src="../img/p1-3.jpg" alt="Living">
+        <img src="../img/p1-4.jpg" alt="Dormitorio con balcón">
+        <img src="../img/p1-5.jpg" alt="Dormitorio principal">
+        <img src="../img/p1-6.jpg" alt="Baño">
+        <img src="../img/p1-1.jpg" alt="Torre Neos">
+        <div class="vhud mono"><span>PROGRAMA · TORRE NEOS</span><span id="vtc">00:00:00:00</span></div>
+        <div class="title-card"><span class="mono" id="vnum" style="color:var(--red-2)">CLIP 01 / 06</span><h3 id="vtitle">Living-comedor</h3></div>
+      </div>
+      <aside class="inspector">
+        <span class="mono" style="color:var(--mute)">Inspector · ESC. 03</span>
+        <h2>Bajá y editá <em>tu recorrido</em></h2>
+        <p id="vdesc">Grandes ventanales y una distribución pensada para disfrutar del día con luz natural.</p>
+        <div>
+          <div class="row"><span>Propiedad</span><b>Torre Neos</b></div>
+          <div class="row"><span>Operación</span><b>Venta</b></div>
+          <div class="row"><span>Dormitorios</span><b>2</b></div>
+          <div class="row"><span>Baños</span><b>2</b></div>
+          <div class="row"><span>Extras</span><b>2 balcones · cochera</b></div>
+          <div class="row"><span>Amenities</span><b>Gym · pileta · 2 SUM</b></div>
+        </div>
+        <button class="btn btn-red" style="margin-top:auto;justify-content:center" onclick="openModal(1)" data-sfx>Ver ficha completa</button>
+      </aside>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="ruler"><span>00:00</span><span>00:05</span><span>00:10</span><span>00:15</span><span>00:20</span><span>00:25</span><span>00:30</span></div>
+      <div class="track" data-name="V2" id="trackT"></div>
+      <div class="track" data-name="V1" id="trackV"></div>
+      <div class="track audio" data-name="A1"><div class="wave"><svg id="wave" viewBox="0 0 600 28" preserveAspectRatio="none"></svg></div></div>
+      <div class="timeline-area"><div class="playhead" id="playhead" style="left:0"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ESCENA 04 · PROPIEDADES -->
+<section class="catalog paper" id="propiedades" data-scene="Propiedades">
+  <div class="wrap">
+    <div class="scene-tag mono fade"><b>ESC. 04</b> El catálogo</div>
+    <div class="cat-head">
+      <h2 class="big"><span class="mask"><span>Elegí tu</span></span><span class="mask"><span>locación <em>en el mapa</em></span></span></h2>
+      <div class="chips fade" id="chips">
+        <button class="chip on" data-f="todas" data-sfx>Todas</button>
+        <button class="chip" data-f="venta" data-sfx>Venta</button>
+        <button class="chip" data-f="alquiler" data-sfx>Alquiler</button>
+        <button class="chip" data-f="terreno" data-sfx>Terrenos</button>
+        <button class="chip" data-f="comercial" data-sfx>Comercial</button>
+        <button class="chip" data-f="fav" data-sfx>♥ Guardadas</button>
+      </div>
+    </div>
+    <div class="bar">
+      <span class="mono" id="count"></span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="toggle" id="toggle"><button class="on" data-v="list">Lista</button><button data-v="map">Mapa</button></div>
+        <select id="sort" aria-label="Ordenar"><option value="dest">Destacadas</option><option value="asc">Menor precio</option><option value="desc">Mayor precio</option></select>
+      </div>
+    </div>
+    <div class="lm" id="lm" data-view="list">
+      <div class="cards" id="cards"></div>
+      <div class="map-box">
+        <div id="map"></div>
+        <div class="map-hud mono"><span>● LOCACIONES · RÍO CUARTO</span><span>Ubicación aprox.</span></div>
+        <div class="map-legend mono"><span><i style="background:var(--red)"></i>Venta</span><span><i style="background:var(--paper)"></i>Alquiler</span><span><i style="background:var(--red);border-radius:50%"></i>Oficina</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ESCENA 05 · ESTRENO -->
+<section class="premiere" id="estreno" data-scene="Estreno">
+  <div class="wrap">
+    <div class="scene-tag mono fade"><b>ESC. 05</b> Próximo estreno</div>
+    <div class="poster reveal">
+      <div class="stamp">ENTREGA<b>USD 20K</b>DESDE</div>
+      <div class="poster-img sketch">
+        <svg class="draw" viewBox="0 0 400 560" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Boceto de la nueva torre">
+          <path style="--len:2400" d="M120 520V110l90-50 90 50v410M120 110h180M210 60v460M20 520h360"/>
+          <path style="--len:2400" d="M140 140h50M230 140h50M140 180h50M230 180h50M140 220h50M230 220h50M140 260h50M230 260h50M140 300h50M230 300h50M140 340h50M230 340h50M140 380h50M230 380h50M140 420h50M230 420h50M140 460h50M230 460h50"/>
+          <path style="--len:900" stroke="#D8262E" stroke-width="3" d="M300 200c40-6 62 8 70 30M370 230l-4-16M370 230l-15-6"/>
+          <path style="--len:600" stroke-dasharray="6 8" d="M40 520c10-60 40-70 60-70M330 450c30 0 50 20 60 70"/>
+        </svg>
+        <span class="note" style="right:26px;top:150px;color:var(--red-2)">bulevar principal</span>
+        <span class="note" style="left:22px;bottom:60px;transform:rotate(4deg)">entrega desde USD 20.000</span>
+        <span class="mono vm">VILLA MARÍA · CBA</span>
+      </div>
+      <div class="poster-txt">
+        <div>
+          <span class="mono" style="color:var(--mute)">Silvia Álvarez presenta</span>
+          <h2 class="big" style="margin-top:10px">Nueva torre<span>Villa María</span></h2>
+        </div>
+        <p class="serif">Sobre uno de los principales bulevares: a minutos del centro, la costanera, la terminal y la autopista.</p>
+        <div class="billing mono">
+          <div>Financiación<b>Propia</b></div>
+          <div>Saldo<b>En cuotas</b></div>
+          <div>Ideal para<b>Invertir</b></div>
+        </div>
+        <a class="btn btn-red" style="align-self:flex-start" target="_blank" rel="noopener" href="https://wa.me/5493584870218?text=Hola!%20Quiero%20informaci%C3%B3n%20sobre%20la%20nueva%20torre%20en%20Villa%20Mar%C3%ADa." data-sfx>Reservar mi lugar →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ESCENA 06 · PROCESO -->
+<section class="story paper" id="proceso" data-scene="Proceso">
+  <div class="wrap">
+    <div class="scene-tag mono fade"><b>ESC. 06</b> Storyboard</div>
+    <div class="story-head">
+      <h2 class="big"><span class="mask"><span>Plano</span></span><span class="mask"><span>a plano <em>con vos</em></span></span></h2>
+      <div class="fade">
+        <p>Comprar, vender o alquilar es una película con muchas escenas. Te mostramos el guion completo para que sepas siempre en qué parte estás.</p>
+        <div class="tracks" id="tracks">
+          <button class="chip on" data-p="vender" data-sfx>Quiero vender</button>
+          <button class="chip" data-p="comprar" data-sfx>Quiero comprar</button>
+          <button class="chip" data-p="alquilar" data-sfx>Quiero alquilar</button>
+        </div>
+      </div>
+    </div>
+    <div class="panels" id="panels"></div>
+    <div class="tip fade" id="tip"></div>
+  </div>
+</section>
+
+<!-- ESCENA 07 · NÚMEROS -->
+<section class="numbers" id="numeros" data-scene="Números">
+  <div class="wrap num-grid">
+    <div>
+      <div class="scene-tag mono fade"><b>ESC. 07</b> Corrección de color</div>
+      <h2 class="big"><span class="mask"><span>Ajustá</span></span><span class="mask"><span>las curvas <em>antes de decidir</em></span></span></h2>
+      <p class="lead fade">Mové los controles y mirá cómo cambia la curva. En la oficina armamos el plan real con vos.</p>
+    </div>
+    <div class="desk fade">
+      <div class="desk-tabs" id="deskTabs"><button class="on" data-c="credito" data-sfx>Cuota de crédito</button><button data-c="alquiler" data-sfx>¿Cuánto alquiler?</button></div>
+      <div class="desk-body" id="dCredito">
+        <div>
+          <div class="knob"><div class="knob-top mono"><span>Valor</span><b id="vPrecio"></b></div><input type="range" id="cPrecio" min="20000" max="300000" step="1000" value="85000"></div>
+          <div class="knob"><div class="knob-top mono"><span>Anticipo</span><b id="vAnt"></b></div><input type="range" id="cAnt" min="10" max="90" step="5" value="30"></div>
+          <div class="knob"><div class="knob-top mono"><span>Plazo</span><b id="vPlazo"></b></div><input type="range" id="cPlazo" min="5" max="30" step="1" value="20"></div>
+          <div class="knob"><div class="knob-top mono"><span>Tasa anual</span><b id="vTasa"></b></div><input type="range" id="cTasa" min="2" max="12" step=".5" value="5"></div>
+        </div>
+        <div class="scope">
+          <svg id="curve" viewBox="0 0 300 160" preserveAspectRatio="none"></svg>
+          <div class="out"><span class="mono" style="color:var(--mute)">Cuota mensual estimada</span><b id="cuota"></b><span class="mono" style="color:var(--mute)">Financiás <span id="monto"></span></span></div>
+        </div>
+      </div>
+      <div class="desk-body" id="dAlquiler" hidden>
+        <div>
+          <div class="knob"><div class="knob-top mono"><span>Ingresos del hogar</span><b id="vIng"></b></div><input type="range" id="aIng" min="500000" max="6000000" step="50000" value="1800000"></div>
+          <div class="knob"><div class="knob-top mono"><span>% a vivienda</span><b id="vPct"></b></div><input type="range" id="aPct" min="20" max="40" step="1" value="30"></div>
+          <button class="btn btn-red" id="aSee" data-sfx>Ver alquileres →</button>
+        </div>
+        <div class="scope"><svg id="bars" viewBox="0 0 300 160" preserveAspectRatio="none"></svg><div class="out"><span class="mono" style="color:var(--mute)">Alquiler + expensas sugerido</span><b id="aRes"></b></div></div>
+      </div>
+      <p class="desk-note mono">Valores orientativos · sistema francés · no es una oferta de crédito</p>
+    </div>
+  </div>
+</section>
+
+<section class="quote paper">
+  <div class="wrap">
+    <blockquote id="quote">Tu nueva historia puede empezar hoy.</blockquote>
+    <div class="note">— Silvia Álvarez</div>
+  </div>
+</section>
+
+<!-- ESCENA 08 · CRÉDITOS -->
+<section class="credits" id="creditos" data-scene="Créditos">
+  <div class="wrap">
+    <div class="scene-tag mono fade"><b>ESC. 08</b> Créditos</div>
+    <h2 class="big"><span class="mask"><span>Créditos</span></span></h2>
+    <div class="roll">
+      <div class="credit fade"><span class="mono">Dirección y asesoramiento</span><p>Silvia Álvarez</p></div>
+      <div class="credit fade"><span class="mono">Locación</span><p><a href="https://www.google.com/maps/search/?api=1&query=9+de+Julio+775+R%C3%ADo+Cuarto+C%C3%B3rdoba" target="_blank" rel="noopener">9 de Julio 775 · Local 2<br>Río Cuarto</a></p></div>
+      <div class="credit fade"><span class="mono">Horario de rodaje</span><p>Lun a Vie · 8 a 13 · 16:30 a 19:30</p><span class="open mono" id="open"><i></i><span></span></span></div>
+      <div class="credit fade"><span class="mono">Contacto</span><p><a href="tel:+543584870218">358 487 0218</a> · <a href="tel:+543586005371">358 600 5371</a><br><a href="tel:+543584252546">358 425 2546</a> · <a href="tel:+543584312274">358 431 2274</a></p></div>
+      <div class="credit fade"><span class="mono">Redes</span><p><a href="https://www.instagram.com/inmobiliaria.silviaalvarez/" target="_blank" rel="noopener">@inmobiliaria.silviaalvarez</a></p></div>
+    </div>
+
+    <form class="form fade" id="cf">
+      <h3>Escribí tu escena</h3>
+      <p>Completá y te abrimos WhatsApp con el mensaje listo.</p>
+      <div class="fgrid">
+        <div class="f"><label class="mono" for="fN">Nombre</label><input id="fN" required></div>
+        <div class="f"><label class="mono" for="fT">Teléfono</label><input id="fT" type="tel"></div>
+        <div class="f full"><label class="mono" for="fM">Motivo</label><select id="fM"><option>Quiero comprar</option><option>Quiero alquilar</option><option>Quiero vender / tasar mi propiedad</option><option>Quiero poner en alquiler mi propiedad</option><option>Inversiones</option></select></div>
+        <div class="f full"><label class="mono" for="fX">Contanos qué buscás</label><textarea id="fX" rows="3"></textarea></div>
+      </div>
+      <button class="btn btn-red" type="submit" data-sfx>Enviar por WhatsApp →</button>
+    </form>
+
+    <div class="fin" aria-hidden="true">FIN</div>
+    <div class="foot mono"><span>© <span id="yr"></span> Silvia Álvarez Negocios Inmobiliarios</span><span>Fotos: @inmobiliaria.silviaalvarez</span></div>
+  </div>
+</section>
+</main>
+
+<a class="wa" href="https://wa.me/5493584870218?text=Hola!%20Quisiera%20hacer%20una%20consulta." target="_blank" rel="noopener" aria-label="WhatsApp" data-sfx>
+  <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5.3-.5c.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.7.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>
+</a>
+
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-bg" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <button class="m-x" data-close aria-label="Cerrar">×</button>
+    <div class="gal" id="gal">
+      <img id="mImg" alt="">
+      <span class="gal-tc mono" id="gTc"></span>
+      <button class="gal-btn prev" id="gPrev" aria-label="Foto anterior">‹</button>
+      <button class="gal-btn next" id="gNext" aria-label="Foto siguiente">›</button>
+      <div class="thumbs" id="gThumbs"></div>
+    </div>
+    <div class="m-body">
+      <span class="mono" id="mTag" style="color:var(--red-2)"></span>
+      <h3 id="mTitle"></h3>
+      <span class="mono" id="mAddr" style="color:var(--mute)"></span>
+      <div class="m-price" id="mPrice"></div>
+      <p id="mDesc"></p>
+      <ul class="feat" id="mFeat"></ul>
+      <div class="m-actions">
+        <a class="btn btn-red" id="mWa" target="_blank" rel="noopener" data-sfx>Consultar</a>
+        <button class="btn btn-line" id="mMap" data-sfx>Ver en el mapa</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cursor mono" id="cursor">Ver ▸</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* =========================================================
+   Propiedades — de las publicaciones de @inmobiliaria.silviaalvarez.
+   Fotos en ../img/p{id}-{n}.jpg (la 1 es la placa del post).
+   Coordenadas aproximadas.
+   ========================================================= */
+const P = [
+ {id:1,op:'venta',tipo:'Departamento',t:'Departamento 2 dormitorios – Torre Neos',a:'Torre Neos, Río Cuarto',price:null,cur:'USD',d:2,b:2,c:true,lat:-33.1335,lng:-64.3605,desc:'Departamento de 2 dormitorios en uno de los sectores residenciales de mayor categoría, con excelentes vistas y amenities de primer nivel.',f:['2 dormitorios','2 baños','2 balcones','Cocina independiente','Cochera incluida','Gimnasio, pileta y doble SUM'],dest:1},
+ {id:2,op:'venta',tipo:'Departamento',t:'Departamento 2 dormitorios – Edificio Juan 23',a:'Edificio Juan 23, Río Cuarto',price:150000,cur:'USD',d:2,b:1,lat:-33.1243,lng:-64.3505,desc:'Uno de los edificios más reconocidos de Río Cuarto. Gran balcón con vista abierta. Apto financiamiento.',f:['2 dormitorios con placard','Gran balcón con vista','Cocina equipada','Calefacción por radiadores','Vanitory independiente','Apto financiamiento'],dest:2},
+ {id:3,op:'venta',tipo:'Departamento',t:'Departamento 3 dormitorios con cochera',a:'Sobremonte 400, Río Cuarto',price:195000,cur:'USD',d:3,b:2,c:true,lat:-33.1206,lng:-64.3476,desc:'Ambientes amplios, balcones de generosas dimensiones, cochera y baulera, con rápido acceso al centro.',f:['3 dormitorios','2 baños','Balcones amplios','Cochera','Baulera','Excelente ubicación']},
+ {id:4,op:'venta',tipo:'Departamento',t:'Departamento 2 dormitorios – Torre Cristal',a:'Lamadrid 854, Microcentro',price:75000,cur:'USD',d:2,b:1,lat:-33.1257,lng:-64.3449,desc:'Planta baja en pleno microcentro, a cuatro cuadras de Plaza Roca. Cocina integrada con gran barra desayunadora.',f:['2 dormitorios','Living-comedor amplio','Barra desayunadora','Mesadas de granito','Baño completo','A 4 cuadras de Plaza Roca']},
+ {id:5,op:'venta',tipo:'Departamento',t:'Dúplex 1 dormitorio con renta',a:'25 de Mayo al 500, Macrocentro',price:41000,cur:'USD',d:1,b:1,lat:-33.1239,lng:-64.3426,desc:'Ideal inversión: renta vigente hasta diciembre de 2026. Se desarrolla en dos plantas con buena iluminación natural.',f:['1 dormitorio en planta alta','Cocina-comedor amplia','Escalera interna','Baño completo','Renta vigente','Ubicación estratégica']},
+ {id:6,op:'venta',tipo:'Departamento',t:'Último piso con terraza privada – Hovenia VI',a:'Ing. Dinkeldein 958, Río Cuarto',price:89000,cur:'USD',d:1,b:1,lat:-33.1383,lng:-64.3692,desc:'A estrenar. Gran terraza privada de uso exclusivo, con acceso desde el living y el dormitorio.',f:['A estrenar','Terraza privada exclusiva','1 dormitorio con placard','Cocina separada','Vistas abiertas','Último piso'],dest:3},
+ {id:7,op:'venta',tipo:'Departamento',t:'Departamento 1 dormitorio – Mafalda IV',a:'San Martín y María Olguín',price:85000,cur:'USD',d:1,b:1,lat:-33.1200,lng:-64.3610,desc:'A 6 cuadras de Plaza Roca, en una de las torres más reconocidas. Grandes ventanales con vista a la ciudad.',f:['1 dormitorio','Cocina integrada','Aire acondicionado','Vanitory independiente','Grandes ventanales','Edificio con amenities']},
+ {id:8,op:'venta',tipo:'Departamento',t:'Departamento con balcón al frente',a:'Estado de Israel 1170',price:65000,cur:'USD',d:1,b:1,lat:-33.1222,lng:-64.3614,desc:'Amplio y luminoso, con balcón al frente y vista abierta a la ciudad.',f:['1 dormitorio','Balcón al frente','Cocina con amoblamiento','Calefactor instalado','Grandes ventanales']},
+ {id:9,op:'venta',tipo:'Casa',t:'Casa 3 dormitorios con pileta y quincho',a:'Dinkeldein y Juan B. Justo',price:null,cur:'USD',d:3,b:1,c:true,lat:-33.1405,lng:-64.3725,desc:'189 m² edificados en lote de 10 × 40. Mucho carácter, gran patio con césped, pileta y quincho con asador.',f:['3 dormitorios (uno con vestidor)','Comedor independiente','Cocina con gran barra','Cochera para 2 autos','Pileta','Quincho con asador'],dest:4},
+ {id:10,op:'venta',tipo:'Casa',t:'Casa con patio y galpón',a:'Guayaquil 63, Río Cuarto',price:65000,cur:'USD',d:2,b:1,c:true,lat:-33.1449,lng:-64.3453,desc:'Casa con gran potencial y posibilidades de ampliación. Patio amplio con vegetación y asador.',f:['2 dormitorios','Cocina completa','Lavadero con baño','Garaje para 2 vehículos','Galpón','Patio con asador']},
+ {id:11,op:'venta',tipo:'Casa',t:'Casa quinta – 1,5 hectáreas',a:'Camino al Tropezón',price:220000,cur:'USD',d:0,b:0,lat:-33.0935,lng:-64.3080,desc:'Una propiedad diferente por su ubicación y su enorme superficie: 15.000 m² a pocos minutos de Río Cuarto.',f:['15.000 m² aprox.','A minutos de la ciudad','Gran potencial','Entorno natural']},
+ {id:12,op:'venta',tipo:'Cochera',t:'Cochera – Torre Imperio',a:'San Martín y 9 de Julio',price:10000,cur:'USD',d:0,b:0,lat:-33.1229,lng:-64.3537,desc:'En pleno centro, ideal para uso particular o inversión en zona de alta demanda.',f:['Pleno centro','Alta demanda','Ideal inversión']},
+ {id:13,op:'terreno',tipo:'Lote',t:'Lote 900 m² – La Angelita',a:'La Angelita, oeste de Río Cuarto',price:null,cur:'USD',sup:900,lat:-33.1210,lng:-64.3990,desc:'En uno de los sectores de mayor crecimiento. Entorno residencial con espacios verdes, senderos y Club House.',f:['900 m²','Manzana 227 – Lote 104','Club House','Senderos internos','Espacios verdes']},
+ {id:14,op:'terreno',tipo:'Lote',t:'Lote 1000 m² – Santa Catalina Country',a:'Barrio Santa Catalina Country',price:35900,cur:'USD',sup:1000,lat:-33.0960,lng:-64.3650,desc:'Terreno de 1000 m². Posible financiación.',f:['1000 m²','Posible financiación','Barrio cerrado']},
+ {id:15,op:'terreno',tipo:'Lote',t:'Lote 250 m² – Barrio Foresta',a:'Barrio Foresta',price:25000,cur:'USD',sup:250,lat:-33.1450,lng:-64.3800,desc:'Terreno de 250 m², ideal para tu primera casa.',f:['250 m²','Ideal primera vivienda']},
+ {id:16,op:'alquiler',tipo:'Casa',t:'Casa de categoría 4 dormitorios',a:'San Martín al 500, pleno centro',price:1800,cur:'USD',per:'/mes',d:4,b:4,c:true,lat:-33.1221,lng:-64.3532,desc:'A 3 cuadras de Plaza Roca. Amplia, luminosa, con patio verde y galería con parrilla doble.',f:['4 dormitorios','4 baños','Cocina equipada','Galería con parrilla doble','Cochera','Radiadores y aire acondicionado'],dest:5},
+ {id:17,op:'alquiler',tipo:'Departamento',t:'Departamento de categoría – Torre Augusta',a:'Barrio Golf, Río Cuarto',price:1200,cur:'USD',per:'/mes',d:2,b:3,c:true,lat:-33.1085,lng:-64.3395,desc:'Gran balcón con asador y vistas abiertas. Cochera incluida en el precio.',f:['2 dormitorios','3 baños','Balcón con asador','Cocina equipada','Cochera incluida','Caldera individual']},
+ {id:18,op:'alquiler',tipo:'Casa',t:'Casa 3 dormitorios con gran patio',a:'Gobernador Rodríguez 150',price:800000,cur:'$',per:'/mes',d:3,b:1,c:true,lat:-33.1500,lng:-64.3537,desc:'Casa de una planta con ambientes amplios y un excelente patio con césped.',f:['3 dormitorios','Cocina equipada','Cochera cubierta','Amplio patio con césped']},
+ {id:19,op:'alquiler',tipo:'Departamento',t:'2 dormitorios con cochera – Arcadia II',a:'Pedernera 237, Río Cuarto',price:550,cur:'USD',per:'/mes',d:2,b:1,c:true,lat:-33.1292,lng:-64.3476,desc:'Amplio, luminoso y muy bien distribuido. Cochera incluida.',f:['2 dormitorios','Placares','Cochera incluida','Muy luminoso']},
+ {id:20,op:'alquiler',tipo:'Departamento',t:'1 dormitorio con cochera – Uru Curé',a:'Torre Uru Curé, Río Cuarto',price:700000,cur:'$',per:'/mes',d:1,b:1,c:true,lat:-33.1175,lng:-64.3430,desc:'Expensas aprox. $150.000 que incluyen cochera y membresía al gimnasio ZOOM.',f:['1 dormitorio','Cocina separada','Cochera incluida','SUM y pileta','Gimnasio incluido en expensas']},
+ {id:21,op:'alquiler',tipo:'Departamento',t:'Departamento 1 dormitorio – Mafalda VI',a:'Av. Italia 1100, Río Cuarto',price:650000,cur:'$',per:'/mes',d:1,b:1,lat:-33.1315,lng:-64.3520,desc:'Moderno, con vista privilegiada de la ciudad. Expensas aprox. $140.000.',f:['1 dormitorio','Balcón con vista','Caldera individual','Radiadores','Baño con antebaño']},
+ {id:22,op:'alquiler',tipo:'Departamento',t:'Departamento 1 dormitorio – Edificio Fátima',a:'Alsina 130, centro',price:450000,cur:'$',per:'/mes',d:1,b:1,lat:-33.1282,lng:-64.3484,desc:'Funcional y bien ubicado en pleno centro. Expensas aprox. $70.000.',f:['1 dormitorio','Balcón','Cocina integrada','Baño completo']},
+ {id:23,op:'alquiler',tipo:'Departamento',t:'Departamento 1 dormitorio – Maipú Norte',a:'Maipú Norte 113',price:420000,cur:'$',per:'/mes',d:1,b:1,lat:-33.1158,lng:-64.3564,desc:'Cómodo y funcional, cocina con amoblamiento completo. Expensas aprox. $90.000. No se aceptan mascotas.',f:['1 dormitorio','Cocina equipada','Muy luminoso','Ideal persona sola o pareja']},
+ {id:24,op:'alquiler',tipo:'Departamento',t:'Departamento de categoría – Mendoza 345',a:'Mendoza 345, centro',price:null,cur:'$',per:'/mes',d:1,b:1,lat:-33.1191,lng:-64.3523,desc:'Edificio de categoría con SUM y seguridad. Balcón y baño con bañera.',f:['1 dormitorio','Balcón','Baño con bañera','SUM amplio','Seguridad']},
+ {id:25,op:'alquiler',tipo:'Departamento',t:'Para estudiantes – Barrio Universidad',a:'Las Higueras, a metros de la UNRC',price:380000,cur:'$',per:'/mes',d:1,b:1,lat:-33.1110,lng:-64.3040,desc:'Complejo exclusivo para estudiantes de la UNRC, a pocos metros del ingreso.',f:['Dos plantas','Patio privado','Cocina integrada','A metros de la UNRC']},
+ {id:26,op:'comercial',tipo:'Local',t:'Local comercial en esquina – Maipú 2406',a:'Maipú 2406, Río Cuarto',price:750000,cur:'$',per:'/mes',sup:60,lat:-33.1390,lng:-64.3657,desc:'Unos 60 m² en esquina con amplio frente vidriado y gran exposición.',f:['60 m² aprox.','Esquina','Frente vidriado','Gran visibilidad']},
+ {id:27,op:'comercial',tipo:'Local',t:'Locales a estrenar – Maipú y Quenón',a:'Maipú y Quenón',price:1500000,cur:'$',per:'/mes',sup:100,lat:-33.1365,lng:-64.3620,desc:'Dos locales a estrenar en esquina: 100 m² ($1.500.000) y 140 m² ($1.800.000).',f:['100 m² y 140 m²','A estrenar','Esquina','Grandes superficies vidriadas']},
+ {id:28,op:'comercial',tipo:'Local',t:'Local comercial con oficinas – Sobremonte 1200',a:'Sobremonte al 1200',price:null,cur:'$',per:'/mes',lat:-33.1286,lng:-64.3501,desc:'Amplio salón con gran vidriera y oficinas independientes.',f:['Salón amplio','Gran vidriera','Oficinas privadas','Muy luminoso']},
+];
+const PHOTO_COUNT={12:1,14:1,15:1};
+P.forEach(p=>{
+  const n=PHOTO_COUNT[p.id]||6;
+  const order=n>1?[...Array(n-1)].map((_,i)=>i+2).concat(1):[1];
+  p.photos=order.map(k=>`../img/p${p.id}-${k}.jpg`);
+  p.img=p.photos[0];
+});
+const OFFICE=[-33.1226,-64.3544], WA='5493584870218';
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const fmt=n=>n.toLocaleString('es-AR');
+const pad=n=>String(n).padStart(2,'0');
+const priceTxt=p=>p.price==null?'Consultar':`${p.cur} ${fmt(p.price)}`;
+const isRent=p=>p.op==='alquiler'||p.op==='comercial';
+const opLabel={venta:'Venta',alquiler:'Alquiler',terreno:'Terreno',comercial:'Comercial'};
+const PLACEHOLDER='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><rect width="4" height="5" fill="#2A2727"/></svg>');
+document.addEventListener('error',e=>{const i=e.target;if(i.tagName==='IMG'&&!i.dataset.fb){i.dataset.fb=1;i.src=PLACEHOLDER}},true);
+let favs=new Set();try{favs=new Set(JSON.parse(localStorage.getItem('sa-favs')||'[]'))}catch(e){}
+const saveFavs=()=>{try{localStorage.setItem('sa-favs',JSON.stringify([...favs]))}catch(e){}};
+$('#yr').textContent=new Date().getFullYear();
+$('#finderCount').textContent=P.length+' clips';
+
+/* ---------- Efectos de sonido (opcional) ---------- */
+let actx=null,sfxOn=false;
+function blip(f=880,d=.05,type='square',v=.04){if(!sfxOn||!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,actx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+d);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+d)}
+$('#sfx').onclick=()=>{sfxOn=!sfxOn;if(sfxOn&&!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  $('#sfx').classList.toggle('on',sfxOn);$('#sfx').setAttribute('aria-pressed',sfxOn);blip(1200,.08);toast(sfxOn?'Sonido activado':'Sonido apagado')};
+document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-sfx]');if(t&&!t.contains(e.relatedTarget))blip(1400,.025,'sine',.03)});
+document.addEventListener('click',e=>{if(e.target.closest('[data-sfx]'))blip(620,.07,'triangle',.06)});
+
+/* ---------- Claqueta ---------- */
+(function(){let n=3;const L=$('#leader');const iv=setInterval(()=>{n--;if(n>0){L.textContent=n}else{clearInterval(iv);L.textContent='▶'}},380);
+  const go=()=>{$('#slate').classList.add('out');document.body.classList.add('ready');$('#apertura').classList.add('in')};
+  setTimeout(go,1500);})();
+
+/* ---------- Revelados ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:0,rootMargin:'0px 0px -12% 0px'});
+$$('.fade,.reveal,.grade,.mask,.draw,h2.big').forEach(el=>io.observe(el));
+const cio=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target,to=+el.dataset.count,t0=performance.now();
+  (function s(t){const k=Math.min(1,(t-t0)/1800);el.textContent=fmt(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)requestAnimationFrame(s)})(t0);cio.unobserve(el)}),{threshold:.6});
+$$('[data-count]').forEach(el=>cio.observe(el));
+
+/* ---------- Navegación ---------- */
+$('#burger').onclick=()=>{$('#nav').classList.toggle('open');$('#burger').textContent=$('#nav').classList.contains('open')?'CERRAR':'MENÚ'};
+$$('#links a').forEach(a=>a.addEventListener('click',()=>{$('#nav').classList.remove('open');$('#burger').textContent='MENÚ'}));
+const scenes=$$('[data-scene]');
+$('#rail').innerHTML=scenes.map((s,i)=>`<a href="#${s.id}" data-sfx><i></i><span>${pad(i+1)} ${s.dataset.scene}</span></a>`).join('');
+const railLinks=$$('#rail a');
+
+/* ---------- Cámara 3D: profundidad con el mouse ---------- */
+const hero=$('#apertura');
+hero.addEventListener('mousemove',e=>{const r=hero.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+  $$('#apertura [data-depth]').forEach(l=>{const d=+l.dataset.depth;l.style.transform=`translate3d(${x*d}px,${y*d}px,0) scale(${d>0?1.02:1})`})});
+
+/* ---------- Recorrido como timeline de edición ---------- */
+const ROOMS=[
+ ['Living-comedor','Grandes ventanales y una distribución pensada para disfrutar del día con luz natural.'],
+ ['Living','Ambientes cómodos, cálidos y con excelente distribución.'],
+ ['Dormitorio con balcón','Uno de los dos balcones, con vistas abiertas a la ciudad.'],
+ ['Dormitorio principal','Dormitorios amplios, luminosos y bien ventilados.'],
+ ['Dos baños','Terminaciones modernas y de excelente calidad.'],
+ ['Torre Neos','Gimnasio, pileta y doble SUM en uno de los sectores más buscados de Río Cuarto.']];
+const vImgs=$$('#viewer img');
+$('#trackV').innerHTML=vImgs.map((im,i)=>`<div class="clip" data-i="${i}"><img src="${im.getAttribute('src')}" alt=""></div>`).join('');
+$('#trackT').innerHTML=ROOMS.map(r=>`<div class="clip txt">T · ${r[0]}</div>`).join('');
+(function(){let d='';for(let x=0;x<600;x+=3){const h=4+Math.abs(Math.sin(x*.05)*Math.cos(x*.013))*20*Math.random()+Math.random()*3;d+=`M${x} ${14-h/2}V${14+h/2}`}$('#wave').innerHTML=`<path d="${d}" stroke="#7fe0b8" stroke-width="1.6" opacity=".8"/>`})();
+let curRoom=0;
+function setRoom(i){if(i===curRoom)return;vImgs.forEach((im,k)=>{im.classList.toggle('was',k===curRoom);im.classList.toggle('on',k===i)});curRoom=i;
+  $('#vtitle').textContent=ROOMS[i][0];$('#vdesc').textContent=ROOMS[i][1];$('#vnum').textContent=`CLIP ${pad(i+1)} / 06`;
+  $$('#trackV .clip').forEach((c,k)=>c.classList.toggle('on',k===i));blip(300+i*90,.06,'sine',.05)}
+$$('#trackV .clip')[0].classList.add('on');
+$('#trackV').addEventListener('click',e=>{const c=e.target.closest('.clip');if(!c)return;const ed=$('#recorrido'),total=ed.offsetHeight-innerHeight;scrollTo({top:ed.offsetTop+total*((+c.dataset.i+.5)/6),behavior:'smooth'})});
+
+/* ---------- Scroll: timecode, recorrido, máscara de texto, escena activa ---------- */
+const quoteEl=$('#quote');
+quoteEl.innerHTML=quoteEl.textContent.split(' ').map(w=>`<span class="w${/hoy/.test(w)?' r':''}">${w}</span>`).join(' ');
+const words=$$('#quote .w');
+function frameTC(sec){const f=Math.floor(sec*24);return `${pad(Math.floor(f/86400))}:${pad(Math.floor(f/1440)%60)}:${pad(Math.floor(f/24)%60)}:${pad(f%24)}`}
+function onScroll(){
+  const y=scrollY,H=document.documentElement.scrollHeight-innerHeight;
+  $('#tc').textContent=frameTC(y/H*184);
+  const ed=$('#recorrido'),r=ed.getBoundingClientRect(),total=ed.offsetHeight-innerHeight,k=Math.min(1,Math.max(0,-r.top/total));
+  $('#playhead').style.left=(k*100)+'%';
+  $('#vtc').textContent=frameTC(k*30);
+  setRoom(Math.min(5,Math.floor(k*6)));
+  const w=$('#word'),wr=w.getBoundingClientRect(),wk=1-(wr.top+wr.height/2)/innerHeight;
+  w.style.backgroundSize=(150-wk*40)+'%';w.style.backgroundPosition=`50% ${30+wk*40}%`;
+  const qr=quoteEl.getBoundingClientRect(),qk=Math.min(1,Math.max(0,(innerHeight*.85-qr.top)/(innerHeight*.55)));
+  words.forEach((el,i)=>el.classList.toggle('lit',i<qk*words.length));
+  let act=0;scenes.forEach((s,i)=>{if(s.getBoundingClientRect().top<innerHeight*.45)act=i});
+  railLinks.forEach((a,i)=>a.classList.toggle('on',i===act));
+}
+addEventListener('scroll',()=>requestAnimationFrame(onScroll),{passive:true});
+addEventListener('resize',onScroll);
+
+/* ---------- Mapa ---------- */
+const map=L.map('map',{scrollWheelZoom:false}).setView([-33.127,-64.353],14);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(map);
+map.on('click',()=>map.scrollWheelZoom.enable());
+L.marker(OFFICE,{icon:L.divIcon({className:'pin-wrap',html:'<div class="office"><svg width="24" height="18" viewBox="0 0 64 48" style="color:#fff"><use href="#logo"/></svg></div>',iconSize:[0,0]})}).addTo(map)
+ .bindPopup('<div class="pop"><div><b>La oficina</b><p>9 de Julio 775 – Local 2<br>Lun a Vie 8–13 y 16:30–19:30</p></div></div>');
+const short=p=>p.price==null?'CONSULTAR':(p.cur==='USD'?'US$'+(p.price>=1000?Math.round(p.price/1000)+'K':p.price):'$'+Math.round(p.price/1000)+'K');
+const markers={};
+P.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'pin-wrap',html:`<div class="pin ${isRent(p)?'alq':''}" data-pin="${p.id}">${short(p)}</div>`,iconSize:[0,0]})});
+  m.bindPopup(`<div class="pop"><img src="${p.img}" alt=""><div><b>${priceTxt(p)}</b><p>${p.t}</p><button onclick="openModal(${p.id})">Ver ficha ▸</button></div></div>`);
+  m.on('mouseover',()=>hl(p.id,true));m.on('mouseout',()=>hl(p.id,false));
+  m.on('click',()=>{const c=document.querySelector(`.card[data-id="${p.id}"]`);if(c&&innerWidth>860)c.scrollIntoView({behavior:'smooth',block:'center'})});
+  markers[p.id]=m;
+});
+function hl(id,on){const c=document.querySelector(`.card[data-id="${id}"]`);if(c)c.classList.toggle('hl',on);const pn=document.querySelector(`[data-pin="${id}"]`);if(pn)pn.classList.toggle('hl',on)}
+
+/* ---------- Catálogo ---------- */
+let filter='todas',sort='dest',qTipo='',qDorm=0,lastBounds=null;
+function list(){
+  let r=P.filter(p=>filter==='todas'||(filter==='fav'?favs.has(p.id):p.op===filter));
+  if(qTipo)r=r.filter(p=>p.tipo===qTipo);
+  if(qDorm)r=r.filter(p=>(p.d||0)>=qDorm);
+  const v=p=>p.price==null?Infinity:(p.cur==='USD'?p.price:p.price/1200); // pesos → USD aprox. solo para ordenar
+  if(sort==='asc')r.sort((a,b)=>v(a)-v(b));
+  else if(sort==='desc')r.sort((a,b)=>(b.price==null?-1:v(b))-(a.price==null?-1:v(a)));
+  else r.sort((a,b)=>(a.dest||99)-(b.dest||99));
+  return r;
+}
+function render(){
+  const r=list();
+  $('#count').textContent=`${pad(r.length)} clips en el catálogo`;
+  $('#cards').innerHTML=r.length?r.map((p,i)=>`
+    <article class="card fade" data-id="${p.id}" tabindex="0" style="transition-delay:${Math.min(i,5)*50}ms">
+      <div class="card-top"><span>CLIP ${pad(p.id)}</span><span class="op">● ${opLabel[p.op].toUpperCase()}</span></div>
+      <div class="card-img"><img class="grade" loading="lazy" src="${p.img}" alt="${p.t}">
+        <button class="fav ${favs.has(p.id)?'on':''}" data-fav="${p.id}" aria-label="Guardar"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>
+      <div class="card-body">
+        <div class="price">${priceTxt(p)} ${p.per&&p.price?`<small>${p.per}</small>`:''}</div>
+        <h3>${p.t}</h3><div class="addr">${p.a}</div>
+        <div class="specs">${p.d?`<span>${p.d} dorm</span>`:''}${p.b?`<span>${p.b} baño${p.b>1?'s':''}</span>`:''}${p.c?'<span>cochera</span>':''}${p.sup?`<span>${fmt(p.sup)} m²</span>`:''}${!p.d&&!p.sup?`<span>${p.tipo}</span>`:''}<span style="margin-left:auto">${p.photos.length} fotos</span></div>
+      </div>
+    </article>`).join(''):`<div class="empty">${filter==='fav'?'Todavía no guardaste propiedades. Tocá el ♥.':'Ninguna toma con esos filtros.'}</div>`;
+  $$('#cards .fade,#cards .grade').forEach(el=>io.observe(el));
+  const ids=new Set(r.map(p=>p.id));
+  P.forEach(p=>ids.has(p.id)?markers[p.id].addTo(map):markers[p.id].remove());
+  lastBounds=r.length?L.latLngBounds(r.map(p=>[p.lat,p.lng]).concat([OFFICE])):null;
+  fitMap(true);
+}
+function fitMap(anim){
+  if(!lastBounds||!$('#map').offsetWidth)return; // mapa oculto (vista lista en celular)
+  map.invalidateSize();
+  if(filter==='todas'&&!qTipo&&!qDorm){anim?map.flyTo([-33.127,-64.353],14,{duration:.8}):map.setView([-33.127,-64.353],14);return}
+  anim?map.flyToBounds(lastBounds,{padding:[50,50],maxZoom:15,duration:.8}):map.fitBounds(lastBounds,{padding:[50,50],maxZoom:15});
+}
+const cards=$('#cards');
+cards.addEventListener('click',e=>{
+  const f=e.target.closest('[data-fav]');
+  if(f){e.stopPropagation();const id=+f.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);saveFavs();f.classList.toggle('on');toast(favs.has(id)?'Guardada ♥':'Quitada');if(filter==='fav')render();return}
+  const c=e.target.closest('.card');if(c)openModal(+c.dataset.id);
+});
+cards.addEventListener('keydown',e=>{const c=e.target.closest('.card');if(c&&e.key==='Enter')openModal(+c.dataset.id)});
+cards.addEventListener('mouseover',e=>{const c=e.target.closest('.card');if(c&&!c.contains(e.relatedTarget))hl(+c.dataset.id,true)});
+cards.addEventListener('mouseout',e=>{const c=e.target.closest('.card');if(c&&!c.contains(e.relatedTarget))hl(+c.dataset.id,false)});
+function setFilter(f){filter=f;$$('#chips .chip').forEach(b=>b.classList.toggle('on',b.dataset.f===f));render()}
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){qTipo='';qDorm=0;setFilter(b.dataset.f)}});
+$$('#chips .chip').forEach(b=>{const f=b.dataset.f;if(f==='fav')return;b.insertAdjacentHTML('beforeend',`<sup>${f==='todas'?P.length:P.filter(p=>p.op===f).length}</sup>`)});
+$('#sort').onchange=e=>{sort=e.target.value;render()};
+$('#toggle').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#toggle button').forEach(x=>x.classList.toggle('on',x===b));$('#lm').dataset.view=b.dataset.v;setTimeout(()=>fitMap(false),50)});
+
+/* buscador de la apertura */
+let sOp='venta';
+$('#ops').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;sOp=b.dataset.op;$$('#ops button').forEach(x=>x.classList.toggle('on',x===b))});
+$('#sGo').onclick=()=>{qTipo=$('#sTipo').value;qDorm=+$('#sDorm').value;filter=sOp;$$('#chips .chip').forEach(b=>b.classList.toggle('on',b.dataset.f===sOp));render();$('#propiedades').scrollIntoView({behavior:'smooth'})};
+
+/* cursor "Ver" sobre las fotos */
+const cur=$('#cursor');
+addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px'},{passive:true});
+document.addEventListener('mouseover',e=>{cur.classList.toggle('on',!!e.target.closest('.card-img'))});
+
+/* ---------- Ficha con galería ---------- */
+let current=null,photoIdx=0;
+window.openModal=id=>{
+  const p=P.find(x=>x.id===id);current=p;map.closePopup();
+  $('#gal').classList.toggle('single',p.photos.length<2);
+  $('#gThumbs').innerHTML=p.photos.map((s,i)=>`<img src="${s}" data-i="${i}" alt="">`).join('');
+  showPhoto(0);$('#mImg').alt=p.t;
+  $('#mTag').textContent=`CLIP ${pad(p.id)} · ${opLabel[p.op].toUpperCase()} · ${p.tipo.toUpperCase()}`;
+  $('#mTitle').textContent=p.t;$('#mAddr').textContent='▸ '+p.a;
+  $('#mPrice').innerHTML=priceTxt(p)+(p.per&&p.price?` <small>${p.per}</small>`:'');
+  $('#mDesc').textContent=p.desc;
+  $('#mFeat').innerHTML=p.f.map(x=>`<li>${x}</li>`).join('');
+  $('#mWa').href=`https://wa.me/${WA}?text=${encodeURIComponent(`Hola! Me interesa la propiedad: ${p.t} (${p.a}). ¿Me podrían dar más información?`)}`;
+  $('#modal').classList.add('open');$('#modal').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';blip(500,.12,'sine',.06);
+};
+function showPhoto(i){const ph=current.photos;photoIdx=(i+ph.length)%ph.length;$('#mImg').src=ph[photoIdx];$('#gTc').textContent=`${pad(photoIdx+1)} / ${pad(ph.length)}`;$$('#gThumbs img').forEach((t,k)=>t.classList.toggle('on',k===photoIdx))}
+$('#gPrev').onclick=()=>{showPhoto(photoIdx-1);blip(700,.03)};
+$('#gNext').onclick=()=>{showPhoto(photoIdx+1);blip(900,.03)};
+$('#gThumbs').addEventListener('click',e=>{const t=e.target.closest('img');if(t)showPhoto(+t.dataset.i)});
+function closeModal(){$('#modal').classList.remove('open');$('#modal').setAttribute('aria-hidden','true');document.body.style.overflow=''}
+$$('[data-close]').forEach(el=>el.onclick=closeModal);
+addEventListener('keydown',e=>{if(!$('#modal').classList.contains('open'))return;if(e.key==='Escape')closeModal();if(e.key==='ArrowRight')showPhoto(photoIdx+1);if(e.key==='ArrowLeft')showPhoto(photoIdx-1)});
+$('#mMap').onclick=()=>{const p=current;closeModal();
+  if(filter!=='todas'&&filter!==p.op){qTipo='';qDorm=0;setFilter('todas')}
+  if(innerWidth<=860){$$('#toggle button').forEach(x=>x.classList.toggle('on',x.dataset.v==='map'));$('#lm').dataset.view='map'}
+  $('.map-box').scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>{map.invalidateSize();map.flyTo([p.lat,p.lng],16,{duration:1});setTimeout(()=>markers[p.id].openPopup(),1100)},500)};
+
+/* ---------- Storyboard ---------- */
+const SB={
+ vender:{s:[['Tasación','Visitamos tu propiedad y analizamos el mercado para definir un valor real.','precio justo'],['Documentación','Revisamos escritura, planos, deudas e impuestos para avanzar sin sorpresas.','todo en orden'],['Producción','Fotos, videos y difusión en redes para que tu propiedad se destaque.','luz, cámara'],['Visitas','Coordinamos y acompañamos cada visita con interesados reales.','¡acción!'],['Reserva y boleto','Negociamos la mejor oferta y firmamos reserva y boleto.','trato hecho'],['Escritura','Firma ante escribano y entrega de llaves.','corten, se va']],
+  tip:'Una propiedad bien tasada desde el inicio suele venderse más rápido.'},
+ comprar:{s:[['El guion','Contanos zona, ambientes, presupuesto y si necesitás financiación.','tu idea'],['Casting','Te enviamos opciones que encajan, incluso algunas sin publicar.','las mejores'],['Visitas','Recorremos juntos y te asesoramos sobre estado, valor y potencial.','en persona'],['Oferta y reserva','Presentamos tu oferta y, si se acepta, se reserva con una seña.','casi'],['Boleto','Firmamos el boleto con las condiciones de pago acordadas.','firmado'],['Llaves','Escritura y entrega de la posesión. Bienvenido a casa.','¡fin feliz!']],
+  tip:'Si vas a invertir, preguntanos por propiedades con renta vigente o desarrollos con financiación.'},
+ alquilar:{s:[['Búsqueda','Te mostramos opciones según presupuesto, zona y necesidades.','a medida'],['Visita','Coordinamos la visita en el horario que te quede cómodo.','cuando puedas'],['Requisitos','Te explicamos documentación y garantías (recibos, garantía, caución).','sin vueltas'],['Contrato','Un contrato claro: plazos, valores, actualizaciones y condiciones.','claro'],['Entrega','Inventario y registro del estado de la propiedad.','llaves'],['Administración','Seguimos presentes durante todo el contrato.','siempre']],
+  tip:'¿Sos propietario? Administramos tu alquiler: inquilinos, contrato, cobros y mantenimiento.'}
+};
+const sketches=['M10 70 L60 20 L110 70 M25 70 V110 H95 V70','M20 20 H100 V110 H20 Z M35 40 H85 M35 60 H85 M35 80 H70','M20 90 L45 35 L70 90 Z M70 60 a20 20 0 1 0 40 0 a20 20 0 1 0 -40 0','M15 100 Q60 10 105 100 M40 100 V70 H80 V100','M20 30 H100 V100 H20 Z M60 30 V100 M35 65 H50','M30 60 a15 15 0 1 1 30 0 a15 15 0 1 1 -30 0 M60 60 H105 M90 60 V75 M100 60 V72'];
+function renderSB(k){
+  $('#panels').innerHTML=SB[k].s.map((s,i)=>`<div class="panel fade"><div class="panel-frame"><svg viewBox="0 0 120 120" fill="none" stroke="#0E0D0D" stroke-width="2" stroke-linecap="round"><path d="${sketches[i]}"/></svg><b>${pad(i+1)}</b><span class="hand">${s[2]}</span></div><span class="mono">Plano ${pad(i+1)}</span><h3>${s[0]}</h3><p>${s[1]}</p></div>`).join('');
+  $('#tip').innerHTML=`<span class="hand">nota del director →</span><span>${SB[k].tip}</span>`;
+  requestAnimationFrame(()=>$$('#panels .panel').forEach((el,i)=>{el.style.transitionDelay=i*70+'ms';io.observe(el)}));
+}
+$('#tracks').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;$$('#tracks .chip').forEach(x=>x.classList.toggle('on',x===b));renderSB(b.dataset.p)});
+renderSB('vender');
+
+/* ---------- Números: curvas ---------- */
+function paint(r){r.style.setProperty('--p',((r.value-r.min)/(r.max-r.min)*100)+'%')}
+function calc(){
+  const pr=+$('#cPrecio').value,an=+$('#cAnt').value,pl=+$('#cPlazo').value,ta=+$('#cTasa').value;
+  const M=pr*(1-an/100),i=ta/100/12,n=pl*12,c=i?M*i/(1-Math.pow(1+i,-n)):M/n;
+  $('#vPrecio').textContent='USD '+fmt(pr);$('#vAnt').textContent=an+'%';$('#vPlazo').textContent=pl+' años';$('#vTasa').textContent=ta+'%';
+  $('#cuota').textContent='USD '+fmt(Math.round(c));$('#monto').textContent='USD '+fmt(Math.round(M));
+  let pts=[],bal=M;for(let m=0;m<=n;m++){pts.push([m/n*300,160-bal/M*140-10]);bal=bal*(1+i)-c}
+  const grid=[1,2,3].map(g=>`<line x1="0" x2="300" y1="${g*40}" y2="${g*40}" stroke="#2a2727"/><line y1="0" y2="160" x1="${g*75}" x2="${g*75}" stroke="#2a2727"/>`).join('');
+  $('#curve').innerHTML=grid+`<path d="M${pts.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#FF3B3F" stroke-width="2.5"/><text x="6" y="16" fill="#8C857C" font-family="JetBrains Mono" font-size="9">SALDO ▸ TIEMPO</text>`;
+  const ing=+$('#aIng').value,pc=+$('#aPct').value,res=Math.round(ing*pc/100/1000)*1000;
+  $('#vIng').textContent='$ '+fmt(ing);$('#vPct').textContent=pc+'%';$('#aRes').textContent='$ '+fmt(res);
+  $('#bars').innerHTML=grid+`<rect x="30" y="${150-pc*1.4}" width="100" height="${pc*1.4}" fill="#FF3B3F"/><rect x="170" y="${150-(100-pc)*1.4}" width="100" height="${(100-pc)*1.4}" fill="#3a3636"/><text x="34" y="${144-pc*1.4}" fill="#fff" font-family="JetBrains Mono" font-size="10">${pc}%</text><text x="174" y="${144-(100-pc)*1.4}" fill="#8C857C" font-family="JetBrains Mono" font-size="10">${100-pc}%</text>`;
+  $$('input[type=range]').forEach(paint);
+}
+$$('input[type=range]').forEach(r=>r.addEventListener('input',()=>{calc();blip(200+r.value/r.max*900,.015,'sine',.02)}));calc();
+$('#deskTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#deskTabs button').forEach(x=>x.classList.toggle('on',x===b));$('#dCredito').hidden=b.dataset.c!=='credito';$('#dAlquiler').hidden=b.dataset.c!=='alquiler'});
+$('#aSee').onclick=()=>{sort='asc';$('#sort').value='asc';qTipo='';qDorm=0;setFilter('alquiler');$('#propiedades').scrollIntoView({behavior:'smooth'})};
+
+/* ---------- Abierto ahora ---------- */
+(function(){const d=new Date(),wd=d.getDay(),m=d.getHours()*60+d.getMinutes(),o=wd>=1&&wd<=5&&((m>=480&&m<780)||(m>=990&&m<1170));
+  $('#open').classList.toggle('yes',o);$('#open span').textContent=o?'Grabando ahora · abierto':'Fuera de rodaje · cerrado'})();
+
+/* ---------- Formulario → WhatsApp ---------- */
+$('#cf').addEventListener('submit',e=>{e.preventDefault();
+  const n=$('#fN').value.trim(),t=$('#fT').value.trim(),m=$('#fM').value,x=$('#fX').value.trim();
+  const txt=`Hola! Soy ${n}.${t?' Mi teléfono: '+t+'.':''}\nMotivo: ${m}.${x?'\n'+x:''}`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`,'_blank','noopener');toast('Abriendo WhatsApp…')});
+
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2000)}
+
+render();onScroll();
+</script>
+</body>
+</html>
