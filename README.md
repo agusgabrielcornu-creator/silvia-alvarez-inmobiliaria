@@ -9,14 +9,16 @@ Propiedades, fotos y datos tomados de [@inmobiliaria.silviaalvarez](https://www.
 |---|---|
 | `index.html` | **Actual** — diseño propio basado en los globos de diálogo del logo (rojo, blanco y gris). Contacto en forma de charla. |
 | `version-pelicula/index.html` | **Anterior** — estética de película: claqueta, visor de cámara, recorrido como línea de tiempo de edición, storyboard y créditos. |
+| `version-clasica/index.html` | **Primera** — clásica y elegante en rojo y blanco, tipografía con serifa, recorrido horizontal y mapa. |
 
-Las dos versiones usan las mismas fotos de la carpeta `img/`.
+Las tres versiones usan las mismas fotos de la carpeta `img/`.
 
 ## Estructura
 
 ```
 index.html                  versión actual
 version-pelicula/index.html versión anterior (película)
+version-clasica/index.html  primera versión (clásica)
 img/                        fotos de las propiedades (p{id}-{n}.jpg; la 1 es la placa del post)
 ```
 
