@@ -7,18 +7,21 @@ Propiedades, fotos y datos tomados de [@inmobiliaria.silviaalvarez](https://www.
 
 | Carpeta | Diseño |
 |---|---|
-| `index.html` | **Actual** — diseño propio basado en los globos de diálogo del logo (rojo, blanco y gris). Contacto en forma de charla. |
-| `version-pelicula/index.html` | **Anterior** — estética de película: claqueta, visor de cámara, recorrido como línea de tiempo de edición, storyboard y créditos. |
-| `version-clasica/index.html` | **Primera** — clásica y elegante en rojo y blanco, tipografía con serifa, recorrido horizontal y mapa. |
+| `index.html` | **Principal** — estética de película: claqueta, visor de cámara, recorrido como línea de tiempo de edición, storyboard y créditos. |
+| `version-globos/index.html` | Diseño basado en los globos de diálogo del logo (rojo, blanco y gris). Contacto en forma de charla. |
+| `version-clasica/index.html` | Primera versión — clásica y elegante en rojo y blanco, tipografía con serifa, recorrido horizontal y mapa. |
+
+`version-pelicula/` solo redirige a la página principal, para que los links viejos sigan funcionando.
 
 Las tres versiones usan las mismas fotos de la carpeta `img/`.
 
 ## Estructura
 
 ```
-index.html                  versión actual
-version-pelicula/index.html versión anterior (película)
+index.html                  página principal (película)
+version-globos/index.html   versión globos
 version-clasica/index.html  primera versión (clásica)
+version-pelicula/           redirección a la principal
 img/                        fotos de las propiedades (p{id}-{n}.jpg; la 1 es la placa del post)
 ```
 
